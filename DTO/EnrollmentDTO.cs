@@ -1,4 +1,6 @@
-namespace SchoolApi.Models
+using SchoolApi.Models;
+
+namespace SchoolApi.Dto
 {
     public class EnrollmentDTO
     {

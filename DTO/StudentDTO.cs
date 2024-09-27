@@ -1,4 +1,4 @@
-namespace SchoolApi.Models
+namespace SchoolApi.Dto
 {
     public class StudentDTO
     {

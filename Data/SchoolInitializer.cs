@@ -1,15 +1,11 @@
 using SchoolApi.Models;
-using System;
-using System.Linq;
 
-namespace SchoolApi.DAL
+namespace SchoolApi.Data
 {
     public static class DbInitializer
     {
         public static void Initialize(SchoolContext context)
         {
-            context.Database.EnsureCreated();
-
             // Look for any students.
             if (context.Students.Any())
             {

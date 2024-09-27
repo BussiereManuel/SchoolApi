@@ -1,12 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+// using System;
+// using System.Collections.Generic;
+// using System.Linq;
+// using System.Threading.Tasks;
+// using Microsoft.AspNetCore.Http;
+
 using Microsoft.EntityFrameworkCore;
-using SchoolApi.DAL;
 using SchoolApi.Models;
+
+using Microsoft.AspNetCore.Mvc;
+using SchoolApi.Data;
+using SchoolApi.Dto;
+using SchoolApi.Services;
 
 namespace SchoolApi.Controllers
 {
@@ -63,7 +67,7 @@ namespace SchoolApi.Controllers
             }
             catch (DbUpdateException)
             {
-                if (!CoursesController.CourseExists(_context, enrollment.CourseID) || !StudentsController.StudentExists(_context, enrollment.StudentID))
+                if (!CourseService.CourseExists(_context, enrollment.CourseID) || !StudentsController.StudentExists(_context, enrollment.StudentID))
                 {
                     return Conflict();
                 }

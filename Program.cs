@@ -1,4 +1,5 @@
-using SchoolApi.DAL;
+using SchoolApi.Data;
+using SchoolApi.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,6 +14,8 @@ builder.Services.AddDbContext<SchoolContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ICourseService, CourseService>();
 
 var app = builder.Build();
 

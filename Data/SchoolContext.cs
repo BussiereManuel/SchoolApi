@@ -1,7 +1,7 @@
 using SchoolApi.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace SchoolApi.DAL
+namespace SchoolApi.Data
 {
     public class SchoolContext : DbContext
     {
@@ -14,12 +14,11 @@ namespace SchoolApi.DAL
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Student> Students { get; set; }
 
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Course>().ToTable("Course");
-            modelBuilder.Entity<Enrollment>().ToTable("Enrollment");
-            modelBuilder.Entity<Student>().ToTable("Student");
-        }
+        // protected override void OnModelCreating(ModelBuilder modelBuilder)
+        // {
+        //     modelBuilder.Entity<Course>().ToTable("Course");
+        //     modelBuilder.Entity<Enrollment>().ToTable("Enrollment");
+        //     modelBuilder.Entity<Student>().ToTable("Student");
+        // }
     }
 }
