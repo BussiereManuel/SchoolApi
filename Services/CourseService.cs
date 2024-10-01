@@ -2,9 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using SchoolApi.Dto;
 using SchoolApi.Data;
 using SchoolApi.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
-using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Mvc;
 
 namespace SchoolApi.Services;
 
@@ -16,14 +13,16 @@ public class CourseService : ICourseService
     {
         _context = context;
     }
+
     public async Task<IEnumerable<CourseDTO>> GetCourses()
     {
         return await _context.Courses.Select(x => CourseToDTO(x)).ToListAsync();
     }
+
     public async Task<CourseDTO?> GetCourse(int id)
     {
         var course = await _context.Courses.FindAsync(id);
-        return course != null ? CourseToDTO(course) : null;
+        return course is Course ? CourseToDTO(course) : null;
     }
 
     public async Task CreateCourse(CourseDTO courseDTO)
@@ -34,57 +33,61 @@ public class CourseService : ICourseService
             Title = courseDTO.Title,
             Credits = courseDTO.Credits
         };
-        _context.Courses.Add(course);
-
         try
         {
+            _context.Courses.Add(course);
             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             if (CourseExists(_context, course.CourseID))
-            {
                 ex.Data.Add("CourseAlreadyExist", course.CourseID);
-            }
             throw;
         }
-        //return TypedResults.Created($"/todoitems/{courseDTO.CourseID}", CourseToDTO(course));
     }
-    // public async Task UpdateCourse(int id, CourseDTO courseDTO)
-    // {
-    //     if (id != courseDTO.CourseID)
-    //         return TypedResults.BadRequest("Course ID mismatch");
 
-    //     var course = await _context.Courses.FindAsync(id);
+    public async Task UpdateCourse(int id, CourseDTO courseDTO)
+    {
+        if (await _context.Courses.FindAsync(id) is not Course course)
+            throw new Exception() { Data = { { "CourseNotFound", id } } };
 
-    //     if (course is null)
-    //         return TypedResults.NotFound($"Course with ID {id} not found");
+        course.Title = courseDTO.Title;
+        course.Credits = courseDTO.Credits;
 
-    //     course.Title = courseDTO.Title;
-    //     course.Credits = courseDTO.Credits;
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
 
-    //     await _context.SaveChangesAsync();
+    public async Task DeleteCourse(int id)
+    {
+        if (await _context.Courses.FindAsync(id) is not Course course)
+            throw new Exception() { Data = { { "CourseNotFound", id } } };
 
-    //     return TypedResults.NoContent();
-    // }
-    // public async Task DeleteCourse(int id)
-    // {
-    //     if (await _context.Courses.FindAsync(id) is not Course course)
-    //         return TypedResults.NotFound($"Course with ID {id} not found");
-
-    //     _context.Courses.Remove(course);
-    //     await _context.SaveChangesAsync();
-
-    //     return TypedResults.NoContent();
-    // }
+        try
+        {
+            _context.Courses.Remove(course);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
 
     private static CourseDTO CourseToDTO(Course course) =>
-    new CourseDTO
-    {
-        CourseID = course.CourseID,
-        Title = course.Title,
-        Credits = course.Credits
-    };
+        new CourseDTO
+        {
+            CourseID = course.CourseID,
+            Title = course.Title,
+            Credits = course.Credits
+        };
+
     public static bool CourseExists(SchoolContext _context, int id)
     {
         return _context.Courses.Any(e => e.CourseID == id);
