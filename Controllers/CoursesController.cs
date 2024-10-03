@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-// using SchoolApi.Data;
 using SchoolApi.Dto;
 using SchoolApi.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -10,13 +9,6 @@ namespace SchoolApi.Controllers;
 [ApiController]
 public class CoursesController : ControllerBase
 {
-    // public readonly SchoolContext _context;
-
-    // public CoursesController(SchoolContext context)
-    // {
-    //     _context = context;
-    // }
-
     // GET: api/Courses
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CourseDTO>>> GetCourses(ICourseService courseService)

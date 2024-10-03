@@ -1,9 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using SchoolApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using SchoolApi.Data;
 using SchoolApi.Dto;
 using SchoolApi.Services;
+using Microsoft.IdentityModel.Tokens;
 
 namespace SchoolApi.Controllers;
 
@@ -11,95 +9,67 @@ namespace SchoolApi.Controllers;
 [ApiController]
 public class EnrollmentsController : ControllerBase
 {
-    private readonly SchoolContext _context;
-
-    public EnrollmentsController(SchoolContext context)
-    {
-        _context = context;
-    }
-
     // GET: api/Enrollments
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<EnrollmentDTO>>> GetEnrollments()
+    public async Task<ActionResult<IEnumerable<EnrollmentDTO>>> GetEnrollments(IEnrollmentService service)
     {
-        return await _context.Enrollments.Select(x => EnrollmentToDTO(x)).ToListAsync();
+        try
+        {
+            var enrollments = await service.GetEnrollments();
+            return enrollments.IsNullOrEmpty() ? NotFound() : Ok(enrollments);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     // GET: api/Enrollments/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<EnrollmentDTO>> GetEnrollment(int id)
+    public async Task<ActionResult<EnrollmentDTO>> GetEnrollment(int id, IEnrollmentService service)
     {
-        var enrollment = await _context.Enrollments.FindAsync(id);
-
-        if (enrollment == null)
+        try
         {
-            return NotFound();
+            var enrollment = await service.GetEnrollment(id);
+            return enrollment is null ? NotFound() : Ok(enrollment);
         }
-
-        return EnrollmentToDTO(enrollment);
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     // POST: api/Enrollments
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<EnrollmentDTO>> CreateEnrollment(EnrollmentDTO enrollmentDTO)
+    public async Task<IActionResult> CreateEnrollment(EnrollmentDTO enrollmentDTO, IEnrollmentService service)
     {
-
-        var enrollment = new Enrollment
-        {
-            CourseID = enrollmentDTO.CourseID,
-            StudentID = enrollmentDTO.StudentID,
-            Grade = enrollmentDTO.Grade
-        };
-
-        _context.Enrollments.Add(enrollment);
-
         try
         {
-            await _context.SaveChangesAsync();
+            await service.CreateEnrollment(enrollmentDTO);
+            return Ok();
         }
-        catch (DbUpdateException)
+        catch (Exception ex)
         {
-            if (!CourseService.CourseExists(_context, enrollment.CourseID) || !StudentService.StudentExists(_context, enrollment.StudentID))
-            {
-                return Conflict();
-            }
-            else
-            {
-                throw;
-            }
+            if (ex.Data.Contains("EnrollmentAlreadyExist"))
+                return Conflict(ex.Data["EnrollmentAlreadyExist"]);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
-
-        return CreatedAtAction("GetEnrollment", new { id = enrollment.EnrollmentID }, enrollmentDTO);
     }
 
     // DELETE: api/Enrollments/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteEnrollment(int id)
+    public async Task<IActionResult> DeleteEnrollment(int id, IEnrollmentService service)
     {
-        var enrollment = await _context.Enrollments.FindAsync(id);
-        if (enrollment == null)
+        try
         {
-            return NotFound();
+            await service.DeleteEnrollment(id);
+            return Ok();
         }
-
-        _context.Enrollments.Remove(enrollment);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private bool EnrollmentExists(int id)
-    {
-        return _context.Enrollments.Any(e => e.EnrollmentID == id);
-    }
-
-    private static EnrollmentDTO EnrollmentToDTO(Enrollment enrollment) =>
-        new EnrollmentDTO
+        catch (Exception ex)
         {
-            EnrollmentID = enrollment.EnrollmentID,
-            CourseID = enrollment.CourseID,
-            StudentID = enrollment.StudentID,
-            Grade = enrollment.Grade
-        };
+            if (ex.Data.Contains("EnrollmentNotFound"))
+                return NotFound(ex.Data["EnrollmentNotFound"]);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
 }
