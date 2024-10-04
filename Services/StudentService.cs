@@ -2,46 +2,44 @@ using Microsoft.EntityFrameworkCore;
 using SchoolApi.Dto;
 using SchoolApi.Data;
 using SchoolApi.Models;
+using AutoMapper;
 
 namespace SchoolApi.Services;
 
 public class StudentService : IStudentService
 {
     private readonly SchoolContext _context;
+    private readonly IMapper _mapper;
 
-    public StudentService(SchoolContext context)
+    public StudentService(SchoolContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<IEnumerable<StudentDTO>> GetStudents()
     {
-        return await _context.Students.Select(x => StudentToDTO(x)).ToListAsync();
+        return await _context.Students.Select(student => _mapper.Map<StudentDTO>(student)).ToListAsync();
     }
 
     public async Task<StudentDTO?> GetStudent(int id)
     {
         var student = await _context.Students.FindAsync(id);
-        return student is Student ? StudentToDTO(student) : null;
+        return student is Student ? _mapper.Map<StudentDTO>(student) : null;
     }
 
     public async Task CreateStudent(StudentDTO studentDTO)
     {
-        var student = new Student
-        {
-            LastName = studentDTO.LastName,
-            FirstMidName = studentDTO.FirstMidName,
-            EnrollmentDate = studentDTO.EnrollmentDate
-        };
         try
         {
+            var student = _mapper.Map<Student>(studentDTO);
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            if (StudentExists(_context, student.StudentID))
-                ex.Data.Add("StudentAlreadyExist", student.StudentID);
+            if (await _context.Students.FindAsync(studentDTO.StudentID) is Student)
+                ex.Data.Add("StudentAlreadyExist", studentDTO.StudentID);
             throw;
         }
     }
@@ -80,19 +78,4 @@ public class StudentService : IStudentService
             throw;
         }
     }
-
-    private static StudentDTO StudentToDTO(Student student) =>
-        new StudentDTO
-        {
-            StudentID = student.StudentID,
-            LastName = student.LastName,
-            FirstMidName = student.FirstMidName,
-            EnrollmentDate = student.EnrollmentDate
-        };
-
-    public static bool StudentExists(SchoolContext context, int id)
-    {
-        return context.Students.Any(e => e.StudentID == id);
-    }
-
 }

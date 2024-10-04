@@ -3,6 +3,7 @@ using SchoolApi.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.Storage;
+using SchoolApi.Profiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,12 @@ builder.Services.AddDbContext<SchoolContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("SchoolApiDatabase")));
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddAutoMapper(typeof(StudentProfile));
+builder.Services.AddAutoMapper(typeof(CourseProfile));
+builder.Services.AddAutoMapper(typeof(EnrollmentProfile));
 
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IStudentService, StudentService>();

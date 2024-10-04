@@ -2,46 +2,44 @@ using Microsoft.EntityFrameworkCore;
 using SchoolApi.Dto;
 using SchoolApi.Data;
 using SchoolApi.Models;
+using AutoMapper;
 
 namespace SchoolApi.Services;
 
 public class EnrollmentService : IEnrollmentService
 {
     private readonly SchoolContext _context;
+    private readonly IMapper _mapper;
 
-    public EnrollmentService(SchoolContext context)
+    public EnrollmentService(SchoolContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<IEnumerable<EnrollmentDTO>> GetEnrollments()
     {
-        return await _context.Enrollments.Select(x => EnrollmentToDTO(x)).ToListAsync();
+        return await _context.Enrollments.Select(enrollment => _mapper.Map<EnrollmentDTO>(enrollment)).ToListAsync();
     }
 
     public async Task<EnrollmentDTO?> GetEnrollment(int id)
     {
         var enrollment = await _context.Enrollments.FindAsync(id);
-        return enrollment is Enrollment ? EnrollmentToDTO(enrollment) : null;
+        return enrollment is Enrollment ? _mapper.Map<EnrollmentDTO>(enrollment) : null;
     }
 
     public async Task CreateEnrollment(EnrollmentDTO enrollmentDTO)
     {
-        var enrollment = new Enrollment
-        {
-            CourseID = enrollmentDTO.CourseID,
-            StudentID = enrollmentDTO.StudentID,
-            Grade = enrollmentDTO.Grade
-        };
         try
         {
+            var enrollment = _mapper.Map<Enrollment>(enrollmentDTO);
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            if (EnrollmentExists(enrollment.EnrollmentID))
-                ex.Data.Add("EnrollmentAlreadyExist", enrollment.EnrollmentID);
+            if (await _context.Enrollments.FindAsync(enrollmentDTO.EnrollmentID) is Enrollment)
+                ex.Data.Add("EnrollmentAlreadyExist", enrollmentDTO.EnrollmentID);
             throw;
         }
     }
@@ -61,19 +59,4 @@ public class EnrollmentService : IEnrollmentService
             throw;
         }
     }
-
-    private static EnrollmentDTO EnrollmentToDTO(Enrollment enrollment) =>
-        new EnrollmentDTO
-        {
-            EnrollmentID = enrollment.EnrollmentID,
-            CourseID = enrollment.CourseID,
-            StudentID = enrollment.StudentID,
-            Grade = enrollment.Grade
-        };
-
-    private bool EnrollmentExists(int id)
-    {
-        return _context.Enrollments.Any(e => e.EnrollmentID == id);
-    }
-
 }

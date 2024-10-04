@@ -2,46 +2,44 @@ using Microsoft.EntityFrameworkCore;
 using SchoolApi.Dto;
 using SchoolApi.Data;
 using SchoolApi.Models;
+using AutoMapper;
 
 namespace SchoolApi.Services;
 
 public class CourseService : ICourseService
 {
     private readonly SchoolContext _context;
+    private readonly IMapper _mapper;
 
-    public CourseService(SchoolContext context)
+    public CourseService(SchoolContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<IEnumerable<CourseDTO>> GetCourses()
     {
-        return await _context.Courses.Select(x => CourseToDTO(x)).ToListAsync();
+        return await _context.Courses.Select(course => _mapper.Map<CourseDTO>(course)).ToListAsync();
     }
 
     public async Task<CourseDTO?> GetCourse(int id)
     {
         var course = await _context.Courses.FindAsync(id);
-        return course is Course ? CourseToDTO(course) : null;
+        return course is Course ? _mapper.Map<CourseDTO>(course) : null;
     }
 
     public async Task CreateCourse(CourseDTO courseDTO)
     {
-        var course = new Course
-        {
-            CourseID = courseDTO.CourseID,
-            Title = courseDTO.Title,
-            Credits = courseDTO.Credits
-        };
         try
         {
+            var course = _mapper.Map<Course>(courseDTO);
             _context.Courses.Add(course);
             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            if (CourseExists(_context, course.CourseID))
-                ex.Data.Add("CourseAlreadyExist", course.CourseID);
+            if (await _context.Courses.FindAsync(courseDTO.CourseID) is Course)
+                ex.Data.Add("CourseAlreadyExist", courseDTO.CourseID);
             throw;
         }
     }
@@ -78,18 +76,5 @@ public class CourseService : ICourseService
         {
             throw;
         }
-    }
-
-    private static CourseDTO CourseToDTO(Course course) =>
-        new CourseDTO
-        {
-            CourseID = course.CourseID,
-            Title = course.Title,
-            Credits = course.Credits
-        };
-
-    public static bool CourseExists(SchoolContext _context, int id)
-    {
-        return _context.Courses.Any(e => e.CourseID == id);
     }
 }
